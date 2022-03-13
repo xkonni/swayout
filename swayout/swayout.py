@@ -14,16 +14,17 @@ class SwayOut:
     def apply(self, preset_name):
         presets = self.config["presets"]
         outputs = self.config["outputs"]
-        if not preset_name in presets:
+        preset = next(filter(lambda x: x["name"] == preset_name, presets))
+        if not preset:
             print(f"preset {preset_name} not defined")
             return False
 
         print(f">> apply preset {preset_name}")
-        preset = presets[preset_name]
         i3_outputs = self.i3.get_outputs()
+        preset_outputs = preset["outputs"]
 
         # disable active: False
-        for p in filter(lambda x: not x["active"], preset):
+        for p in filter(lambda x: not x["active"], preset_outputs):
             output = next(
                 filter(lambda x: x["name"] == p["name"], outputs))
             i3_output = next(filter(lambda x: x.serial ==
@@ -33,7 +34,7 @@ class SwayOut:
             self.i3.command(cmd)
 
         # enable active: True
-        for p in filter(lambda x: x["active"], preset):
+        for p in filter(lambda x: x["active"], preset_outputs):
             output = next(
                 filter(lambda x: x["name"] == p["name"], outputs))
             i3_output = next(filter(lambda x: x.serial ==
@@ -57,7 +58,7 @@ class SwayOut:
         print("\n>> presets")
         list = {}
         idx = 0
-        for preset_name in presets:
+        for preset_name in [x["name"] for x in presets]:
             idx += 1
             print(f"  {idx}: {preset_name}")
             list[idx] = preset_name
@@ -72,12 +73,17 @@ class SwayOut:
             print(f"\n>> activating preset {p}")
             self.apply(p)
         except:
-            print("aborting")
+            print("aborting...")
 
 
 def main():
-    with open(CONFIG_FILE) as f:
-        config = json.load(f)
+    try:
+        with open(CONFIG_FILE) as f:
+            config = json.load(f)
+    except Exception as ex:
+        print(f"Exception Type:{type(ex).__name__}, args:{ex.args}")
+        return False
+
     swayout = SwayOut(config)
     swayout.select()
 
