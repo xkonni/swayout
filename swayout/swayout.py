@@ -5,10 +5,12 @@ from xdg import XDG_CONFIG_HOME, XDG_CACHE_HOME
 import time
 # prompt
 from prompt_toolkit import PromptSession
+from prompt_toolkit.application import run_in_terminal
 from prompt_toolkit.completion import NestedCompleter
 from prompt_toolkit.completion import FuzzyCompleter
-from prompt_toolkit.history import FileHistory
 from prompt_toolkit.formatted_text import HTML
+from prompt_toolkit.history import FileHistory
+from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.styles import Style
 from prompt_toolkit.validation import Validator, ValidationError
 
@@ -25,6 +27,7 @@ class SwayOut:
         self.preset_cmd = None
         self.outputs = self.i3.get_outputs()
         self.commands = {
+            "?": None,
             "output": {},
             "preset": {},
             "show": {"outputs": None, "presets": None},
@@ -102,10 +105,33 @@ class SwayOut:
             self.i3.command(cmd)
 
     def show(self, item):
-        print(item)
+        print(f"swayout: {item}")
         list = {}
         idx = 0
-        if item == "outputs":
+        if item == "help":
+            print("available commands:")
+            for k in self.commands.keys():
+                c_k = self.commands[k]
+                if c_k is None:
+                    print(f"  - {k}")
+                    continue
+                for k2 in c_k.keys():
+                    if k2 is None:
+                        break
+                    c_k2 = c_k[k2]
+                    if k2.isdigit():
+                        if k2 == "1":
+                            if c_k2 is None:
+                                print(f"  - {k} #")
+                                continue
+                            else:
+                                print(f"  - {k} # [{'|'.join(k3 for k3 in c_k2.keys())}]")
+                                continue
+                        else:
+                            continue
+                    else:
+                        print(f"  - {k} {k2}")
+        elif item == "outputs":
             self.outputs = self.i3.get_outputs()
             self.update_outputs()
             for output in self.outputs:
@@ -159,8 +185,23 @@ def main():
         print(f"Exception Type:{type(ex).__name__}, args:{ex.args}")
         return False
     swayout = SwayOut(config)
+    bindings = KeyBindings()
+    @bindings.add("c-q")
+    def _(event):
+        event.app.exit()
+    @bindings.add(" ")
+    def _(event):
+        buff = event.app.current_buffer
+        if buff.complete_state:
+            buff.complete_next()
+            buff.insert_text(" ")
+        else:
+            buff.start_completion(select_first=False)
+            buff.insert_text(" ")
+
     swayout.show("outputs")
     swayout.show("presets")
+
 
     def bottom_toolbar():
         return HTML(f"<style bg='#268bd2'><b> :: swayout</b></style>")
@@ -180,14 +221,16 @@ def main():
                 history=FileHistory(f"{XDG_CACHE_HOME}/swayout"),
                 style=style,
                 validator=CommandValidator(), validate_while_typing=False)
-            cmd = session.prompt("swayout > ", bottom_toolbar=bottom_toolbar)
+            cmd = session.prompt("swayout > ", bottom_toolbar=bottom_toolbar, key_bindings=bindings)
         except KeyboardInterrupt:
             continue  # Control-C pressed. Try again.
         except EOFError:
             break  # Control-D pressed.
-        if cmd == "quit":
+        if cmd == "quit" or cmd is None:
             break
         cmd = cmd.split(" ")
+        if cmd[0] == "?":
+            swayout.show("help")
         # output
         if cmd[0] == "output":
             swayout.set_output(cmd[1], cmd[2])
