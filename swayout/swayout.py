@@ -14,6 +14,7 @@ from prompt_toolkit.styles import Style
 from prompt_toolkit.validation import Validator, ValidationError
 
 CONFIG_FILE = f"{XDG_CONFIG_HOME}/swayout.json"
+CONFIG_DEFAULT =  { "outputs": [], "presets": [] }
 swayout = None
 
 
@@ -182,7 +183,8 @@ def main():
             config = json.load(f)
     except Exception as ex:
         print(f"Exception Type:{type(ex).__name__}, args:{ex.args}")
-        return False
+        print("running with empty config")
+        config = CONFIG_DEFAULT
     swayout = SwayOut(config)
     bindings = KeyBindings()
     @bindings.add("c-q")
