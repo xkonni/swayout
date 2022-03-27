@@ -5,7 +5,6 @@ from xdg import XDG_CONFIG_HOME, XDG_CACHE_HOME
 import time
 # prompt
 from prompt_toolkit import PromptSession
-from prompt_toolkit.application import run_in_terminal
 from prompt_toolkit.completion import NestedCompleter
 from prompt_toolkit.completion import FuzzyCompleter
 from prompt_toolkit.formatted_text import HTML
@@ -165,7 +164,7 @@ class CommandValidator(Validator):
             elif word in cmds:
                 if isinstance(cmds, dict):
                     cmds = cmds[word]
-                    if cmds is None:
+                    if cmds is None or cmds == " ":
                         return
                     else:
                         pos = text.find(word)+len(word)
@@ -226,13 +225,13 @@ def main():
             continue  # Control-C pressed. Try again.
         except EOFError:
             break  # Control-D pressed.
-        if cmd == "quit" or cmd is None:
+        if cmd is None:
             break
         cmd = cmd.split(" ")
         if cmd[0] == "?":
             swayout.show("help")
         # output
-        if cmd[0] == "output":
+        elif cmd[0] == "output":
             swayout.set_output(cmd[1], cmd[2])
         # preset
         elif cmd[0] == "preset":
@@ -241,6 +240,10 @@ def main():
         elif cmd[0] == "show":
             # if cmd[1] == "outputs":
             swayout.show(cmd[1])
+        elif cmd[0] == "quit":
+            break
+        else:
+            print(f"unknown command \"{cmd}\"")
 
 
 if __name__ == "__main__":
