@@ -2,20 +2,25 @@ from i3ipc import Connection
 import json
 import time
 from xdg import XDG_CONFIG_HOME, XDG_CACHE_HOME
+import readchar
 import time
-# prompt
-from prompt_toolkit import PromptSession
-from prompt_toolkit.completion import NestedCompleter
-from prompt_toolkit.completion import FuzzyCompleter
-from prompt_toolkit.formatted_text import HTML
-from prompt_toolkit.history import FileHistory
-from prompt_toolkit.key_binding import KeyBindings
-from prompt_toolkit.styles import Style
-from prompt_toolkit.validation import Validator, ValidationError
+import sys
 
 CONFIG_FILE = f"{XDG_CONFIG_HOME}/swayout.json"
-CONFIG_DEFAULT =  { "outputs": [], "presets": [] }
+CONFIG_DEFAULT = {"outputs": [], "presets": []}
 swayout = None
+
+
+class bcolors:
+    HEADER = '\033[95m'
+    BLUE = '\033[94m'
+    CYAN = '\033[96m'
+    GREEN = '\033[92m'
+    WARNING = '\033[93m'
+    ERROR = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
 
 
 class SwayOut:
@@ -23,31 +28,119 @@ class SwayOut:
         self.i3 = Connection()
         self.config = config
         # runtime
-        self.output_cmd = {"enable": None, "configure": None, "disable": None, "reenable": None}
-        self.preset_cmd = None
         self.outputs = self.i3.get_outputs()
+        self.output_cmd = {
+            "cmd": "f'self.set_mode_idx({x})'",
+            "help": "f'select output {x}'",
+        }
+        self.output_sub_cmds = {
+            "c": {"cmd": "f'self.set_output({x},\"configure\")'", "help": "configure output"},
+            "e": {"cmd": "f'self.set_output({x},\"enable\")'", "help": "enable output"},
+            "d": {"cmd": "f'self.set_output({x},\"disable\")'", "help": "disable output"},
+            "r": {"cmd": "f'self.set_output({x},\"reconfigure\")'", "help": "reconfigure output"},
+            "s": {"cmd": "f'self.set_output({x},\"show\")'", "help": "show output"}
+        }
+        self.preset_cmd = {
+            "cmd": "f'self.set_preset({x})'", "help": "f'switch to preset {x}'"}
         self.commands = {
-            "?": None,
+            "any": {
+                "q": {"cmd": "sys.exit()", "help": "quit swayout"},
+                "m": {"cmd": "self.set_mode('main')", "help": "main menu"},
+                "?": {"cmd": "self.show('help')", "help": "show help"},
+                "h": {"cmd": "self.show('help')", "help": "show help"},
+                "d": {"cmd": "print(json.dumps(self.commands, indent=4))", "help": "dump commands"},
+            },
+            "main": {
+                "o": {"cmd": "self.set_mode('output')", "help": "output configuration"},
+                "p": {"cmd": "self.set_mode('preset')", "help": "preset configuration"},
+                "s": {"cmd": "self.set_mode('show')", "help": "show outputs/presets"},
+            },
             "output": {},
             "preset": {},
-            "show": {"outputs": None, "presets": None},
-            "quit": None
+            "show": {
+                "o": {"cmd": "self.show('outputs')", "help": "show outputs"},
+                "p": {"cmd": "self.show('presets')", "help": "show presets"},
+            }
         }
-        self.update_outputs()
-        self.update_presets()
+        self.mode = {}
+        self.set_mode("main")
+        self.update_commands()
 
-    def update_outputs(self):
+    def set_mode(self, mode, idx=None):
+        self.mode["mode"] = mode
+        self.mode["idx"] = None
+
+    def set_mode_idx(self, idx):
+        self.mode["idx"] = str(idx)
+
+    def prompt(self):
+        while True:
+            mode = self.mode["mode"]
+            idx = self.mode.get("idx")
+            m = f"{mode}{':' if idx is not None else ''}{idx if idx is not None else ''}"
+            print(f"{bcolors.BOLD}{bcolors.BLUE}::swayout:: {bcolors.CYAN}{m:>8}{bcolors.ENDC}{bcolors.BOLD} > {bcolors.ENDC}", end="", flush=True)
+            sel = readchar.readchar().lower()
+            print(sel)
+            # quit
+            if sel in ["q"]:
+                print(f"{bcolors.BOLD}{bcolors.HEADER}> quit")
+                break
+            # any
+            elif sel in self.commands["any"].keys():
+                cmds = self.commands["any"]
+                cmd = cmds[sel]["cmd"]
+                # print(f"{cmd = }")
+                exec(cmd)
+                continue
+            else:
+                if mode in self.commands.keys():
+                    # idx is not set
+                    if idx is None:
+                        cmds = self.commands[mode]
+                        if sel in cmds.keys():
+                            if "cmd" in cmds[sel]:
+                                cmd = cmds[sel]["cmd"]
+                                exec(cmd)
+                                continue
+                    # idx is set
+                    else:
+                        cmds = self.commands[mode][idx]["sub_cmds"]
+                        if sel in cmds.keys():
+                            if "cmd" in cmds[sel]:
+                                cmd = cmds[sel]["cmd"]
+                                exec(cmd)
+                                continue
+            print(f"{bcolors.WARNING}> invalid input {sel}, press h/? for help")
+
+    def update_commands(self):
         self.commands["output"] = {
-            str(x+1): self.output_cmd for x in range(len(self.outputs))}
+            str(x): {
+                "cmd": eval(self.output_cmd["cmd"]),
+                "help": eval(self.output_cmd["help"]),
+                "sub_cmds": {}
+            } for x in range(1, len(self.config["outputs"])+1)
+        }
 
-    def update_presets(self):
+        for x in self.commands["output"]:
+            self.commands["output"][x]["sub_cmds"] = {
+                k: {
+                    "cmd": eval(self.output_sub_cmds[k]["cmd"], {'k': f'{k}', 'x': x}),
+                    "help": self.output_sub_cmds[k]["help"]
+                } for k in self.output_sub_cmds
+            }
+
         self.commands["preset"] = {
-            str(x+1): self.preset_cmd for x in range(len(self.config["presets"]))}
+            str(x): {"cmd": eval(self.preset_cmd["cmd"]), "help": eval(self.preset_cmd["help"])} for x in range(1, len(self.config["presets"])+1)
+        }
+
+    def output_enable(self, idx):
+        self.set_output(idx, "enable")
 
     def set_output(self, idx, action, quiet=False):
         output = self.outputs[int(idx)-1]
         if not quiet:
-            print(f">> output {output.name}")
+            print(f"{bcolors.HEADER}> output {output.name} {action}{bcolors.GREEN}")
+
         if action == "configure":
             cmd = f"output {output.name}"
             config_output = next(
@@ -59,12 +152,16 @@ class SwayOut:
             cmd = f"output {output.name} disable"
         elif action == "enable":
             cmd = f"output {output.name} enable"
-        elif action == "reenable":
+        elif action == "reconfigure":
             self.set_output(idx, "disable", quiet=True)
             print("  - sleep 5")
             time.sleep(5)
             self.set_output(idx, "enable", quiet=True)
             return
+        elif action == "show":
+            self.show("outputs")
+            return
+
         print(f"  - {cmd}")
         self.i3.command(cmd)
 
@@ -105,35 +202,46 @@ class SwayOut:
             self.i3.command(cmd)
 
     def show(self, item):
-        print(f"swayout: {item}")
+        print(f"{bcolors.BOLD}{bcolors.HEADER}> show {item}{bcolors.ENDC}")
         list = {}
         idx = 0
         if item == "help":
-            print("available commands:")
+            # any, main, ...
             for k in self.commands.keys():
+                print(f"{bcolors.CYAN}mode: {k}{bcolors.GREEN}")
                 c_k = self.commands[k]
-                if c_k is None:
-                    print(f"  - {k}")
-                    continue
                 for k2 in c_k.keys():
-                    if k2 is None:
-                        break
                     c_k2 = c_k[k2]
+                    h2 = c_k2["help"]
                     if k2.isdigit():
                         if k2 == "1":
-                            if c_k2 is None:
-                                print(f"  - {k} #")
-                                continue
-                            else:
-                                print(f"  - {k} # [{'|'.join(k3 for k3 in c_k2.keys())}]")
-                                continue
-                        else:
-                            continue
+                            h2 = h2.replace(f" {k2}", "")
+                            print(f"    - #: {h2}")
+                            if "sub_cmds" in c_k2:
+                                print(f"{bcolors.CYAN}  mode: {k}-#{bcolors.GREEN}")
+                                for k3 in c_k2["sub_cmds"]:
+                                    h3 = c_k2["sub_cmds"][k3]["help"]
+                                    print(f"    - {k3}: {h3}")
+
                     else:
-                        print(f"  - {k} {k2}")
+                        print(f"  - {k2}: {h2}")
+
+                    # if k2.isdigit():
+                    #     if k2 == "1":
+                    #         if c_k2 is None:
+                    #             print(f"  - {k} #")
+                    #             continue
+                    #         else:
+                    #             print(
+                    #                 f"  - {k} # [{'|'.join(k3 for k3 in c_k2.keys())}]")
+                    #             continue
+                    #     else:
+                    #         continue
+                    # else:
+                    #     print(f"  - {k2}: {h2}")
         elif item == "outputs":
             self.outputs = self.i3.get_outputs()
-            self.update_outputs()
+            # self.update_output_validator()
             for output in self.outputs:
                 idx += 1
                 if output.active:
@@ -151,31 +259,6 @@ class SwayOut:
         print("")
 
 
-class CommandValidator(Validator):
-    def validate(self, document):
-        global swayout
-        text = document.text
-        cmds = swayout.commands
-        words = text.split(" ")
-        pos = 0
-        for word in words:
-            if len(word) == 0:
-                raise ValidationError(
-                    message="enter command or press tab", cursor_position=0)
-            elif word in cmds:
-                if isinstance(cmds, dict):
-                    cmds = cmds[word]
-                    if cmds is None or cmds == " ":
-                        return
-                    else:
-                        pos = text.find(word)+len(word)
-            else:
-                pos = text.find(word)+len(word)
-                break
-        raise ValidationError(
-            message=f"wrong argument \"{word}\" in command \"{text}\"", cursor_position=pos)
-
-
 def main():
     global swayout
     try:
@@ -185,67 +268,11 @@ def main():
         print(f"Exception Type:{type(ex).__name__}, args:{ex.args}")
         print("running with empty config")
         config = CONFIG_DEFAULT
-    swayout = SwayOut(config)
-    bindings = KeyBindings()
-    @bindings.add("c-q")
-    def _(event):
-        event.app.exit()
-    @bindings.add(" ")
-    def _(event):
-        buff = event.app.current_buffer
-        if buff.complete_state:
-            buff.complete_next()
-            buff.insert_text(" ")
-        else:
-            buff.start_completion(select_first=False)
-            buff.insert_text(" ")
 
+    swayout = SwayOut(config)
     swayout.show("outputs")
     swayout.show("presets")
-
-
-    def bottom_toolbar():
-        return HTML(f"<style bg='#268bd2'><b> :: swayout</b></style>")
-    style = Style.from_dict({
-        'completion-menu.completion': 'bg:#808080 fg:#ffffff',
-        'completion-menu.completion.current': 'bg:#404040 #268bd2',
-        'scrollbar.background': 'bg:#606060',
-        'scrollbar.button': 'bg:#202020',
-    })
-    while True:
-        try:
-            command_completer = NestedCompleter.from_nested_dict(
-                swayout.commands)
-            fuzzy_command_completer = FuzzyCompleter(command_completer)
-            session = PromptSession(
-                completer=fuzzy_command_completer, complete_while_typing=True,
-                history=FileHistory(f"{XDG_CACHE_HOME}/swayout"),
-                style=style,
-                validator=CommandValidator(), validate_while_typing=False)
-            cmd = session.prompt("swayout > ", bottom_toolbar=bottom_toolbar, key_bindings=bindings)
-        except KeyboardInterrupt:
-            continue  # Control-C pressed. Try again.
-        except EOFError:
-            break  # Control-D pressed.
-        if cmd is None:
-            break
-        cmd = cmd.split(" ")
-        if cmd[0] == "?":
-            swayout.show("help")
-        # output
-        elif cmd[0] == "output":
-            swayout.set_output(cmd[1], cmd[2])
-        # preset
-        elif cmd[0] == "preset":
-            swayout.set_preset(cmd[1])
-        # show
-        elif cmd[0] == "show":
-            # if cmd[1] == "outputs":
-            swayout.show(cmd[1])
-        elif cmd[0] == "quit":
-            break
-        else:
-            print(f"unknown command \"{cmd}\"")
+    swayout.prompt()
 
 
 if __name__ == "__main__":

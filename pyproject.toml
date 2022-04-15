@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "swayout"
-version = "0.1.0"
+version = "0.1.1"
 description = "switch between sway output presets"
 authors = ["Konstantin Koslowski <konstantin.koslowski@posteo.de>"]
 
@@ -8,7 +8,7 @@ authors = ["Konstantin Koslowski <konstantin.koslowski@posteo.de>"]
 python = "^3.10"
 i3ipc = "^2.2.1"
 xdg = "^5.1.1"
-prompt-toolkit = "^3.0.28"
+readchar = "^3.0.5"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
