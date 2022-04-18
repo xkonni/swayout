@@ -7,13 +7,14 @@ import time
 import sys
 
 
-class bcolors:
-    HEADER = '\033[95m'
-    BLUE = '\033[94m'
-    CYAN = '\033[96m'
+class Colors:
+    RED = '\033[91m'
     GREEN = '\033[92m'
-    WARNING = '\033[93m'
-    ERROR = '\033[91m'
+    YELLOW = '\033[93m'
+    BLUE = '\033[94m'
+    MAGENTA = '\033[95m'
+    CYAN = '\033[96m'
+    WHITE = '\033[97m'
     ENDC = '\033[0m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
@@ -77,20 +78,21 @@ class SwayOut:
     def set_mode(self, mode=None, idx=None):
         if mode is not None:
             self.mode["mode"] = mode
-        if idx is not None:
             self.mode["idx"] = None
+        if idx is not None:
+            self.mode["idx"] = str(idx)
 
     def prompt(self):
         while True:
             mode = self.mode["mode"]
             idx = self.mode.get("idx")
             m = f"{mode}{':' if idx is not None else ''}{idx if idx is not None else ''}"
-            print(f"{bcolors.BOLD}{bcolors.BLUE}::swayout:: {bcolors.GREEN}{m:>8}{bcolors.ENDC}{bcolors.BOLD} > {bcolors.ENDC}", end="", flush=True)
+            print(f"{Colors.BOLD}{Colors.BLUE}::swayout:: {Colors.GREEN}{m:>8}{Colors.ENDC}{Colors.BOLD} > {Colors.ENDC}", end="", flush=True)
             sel = readchar.readchar().lower()
             print(sel)
             # quit
             if sel in ["q"]:
-                print(f"{bcolors.BOLD}{bcolors.HEADER}> quit")
+                print(f"{Colors.BOLD}{Colors.MAGENTA}> quit")
                 break
             # any
             elif sel in self.commands["any"].keys():
@@ -116,7 +118,7 @@ class SwayOut:
                                 cmd = cmds[sel]["cmd"]
                                 exec(cmd)
                                 continue
-            print(f"{bcolors.WARNING}> invalid input {sel}, press h/? for help")
+            print(f"{Colors.YELLOW}> invalid input {sel}, press h/? for help")
 
     def update_commands(self):
         for c in self.output_cmd:
@@ -152,7 +154,7 @@ class SwayOut:
     def set_output(self, idx, action, quiet=False):
         output = self.outputs[int(idx)-1]
         if not quiet:
-            print(f"{bcolors.HEADER}> output: {output.name} {action}{bcolors.CYAN}")
+            print(f"{Colors.MAGENTA}> output: {output.name} {action}{Colors.CYAN}")
 
         if action == "configure":
             cmd = f"output {output.name}"
@@ -185,7 +187,7 @@ class SwayOut:
             print(f"preset {idx} not defined")
             return False
 
-        print(f"{bcolors.HEADER}> preset: {preset['name']}{bcolors.CYAN}")
+        print(f"{Colors.MAGENTA}> preset: {preset['name']}{Colors.CYAN}")
         i3_outputs = self.i3.get_outputs()
         preset_outputs = preset["outputs"]
 
@@ -214,15 +216,15 @@ class SwayOut:
             print(f"  - {cmd}")
             self.i3.command(cmd)
 
-        print(f"{bcolors.ENDC}", end="")
+        print(f"{Colors.ENDC}", end="")
 
     def show(self, item, item_idx=None):
-        print(f"{bcolors.BOLD}{bcolors.HEADER}> show {item}{bcolors.ENDC}")
+        print(f"{Colors.BOLD}{Colors.MAGENTA}> show {item}{Colors.ENDC}")
         list = {}
         idx = 0
         if item == "help":
             for k in self.commands.keys():
-                print(f"{bcolors.CYAN}mode: {k}{bcolors.GREEN}")
+                print(f"{Colors.CYAN}mode: {k}{Colors.GREEN}")
                 c_k = self.commands[k]
                 for k2 in c_k.keys():
                     c_k2 = c_k[k2]
@@ -232,7 +234,7 @@ class SwayOut:
                             h2 = h2.replace(f" {k2}", "")
                             print(f"  - #: {h2}")
                             if "sub_cmds" in c_k2:
-                                print(f"{bcolors.CYAN}  mode: {k}-#{bcolors.GREEN}")
+                                print(f"{Colors.CYAN}  mode: {k}-#{Colors.GREEN}")
                                 for k3 in c_k2["sub_cmds"]:
                                     h3 = c_k2["sub_cmds"][k3]["help"]
                                     print(f"    - {k3}: {h3}")
@@ -245,15 +247,15 @@ class SwayOut:
                 idx += 1
                 if idx == item_idx or item_idx is None:
                     if output.active:
-                        state = "[active]"
+                        state = f"{Colors.GREEN}[active]{Colors.CYAN}"
                         mode = f"{output.current_mode.width}x{output.current_mode.height}"
                     else:
-                        state = "[inactive]"
+                        state = f"{Colors.RED}[inactive]{Colors.CYAN}"
                         mode = "-"
                     print(
-                        f"{bcolors.CYAN}  {idx}: {output.name:5s} {state:10s} {mode:10s} {output.make:20s} {output.model:10s} {output.serial}{bcolors.ENDC}")
+                        f"{Colors.CYAN}  {idx}: {output.name:5s} {state:20} {mode:10s} {output.make:20s} {output.model:10s} {output.serial}{Colors.ENDC}")
         elif item == "presets":
             for preset_name in [x["name"] for x in self.config["presets"]]:
                 idx += 1
-                print(f"{bcolors.CYAN}  {idx}: {preset_name}{bcolors.ENDC}")
+                print(f"{Colors.CYAN}  {idx}: {preset_name}{Colors.ENDC}")
 
