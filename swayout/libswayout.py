@@ -6,10 +6,6 @@ import readchar
 import time
 import sys
 
-CONFIG_FILE = f"{XDG_CONFIG_HOME}/swayout.json"
-CONFIG_DEFAULT = {"outputs": [], "presets": []}
-swayout = None
-
 
 class bcolors:
     HEADER = '\033[95m'
@@ -24,13 +20,22 @@ class bcolors:
 
 
 class SwayOut:
-    def __init__(self, config):
+    CONFIG_FILE = f"{XDG_CONFIG_HOME}/swayout.json"
+    CONFIG_DEFAULT = {"outputs": [], "presets": []}
+
+    def __init__(self):
+        try:
+            with open(SwayOut.CONFIG_FILE) as f:
+                self.config = json.load(f)
+        except Exception as ex:
+            print(f"Exception Type:{type(ex).__name__}, args:{ex.args}")
+            print("running with empty config")
+            self.config = SwayOut.CONFIG_DEFAULT
         self.i3 = Connection()
-        self.config = config
         # runtime
         self.outputs = self.i3.get_outputs()
         self.output_cmd = {
-            "#": { "cmd": "f'self.set_mode_idx({x})'", "help": "f'select output {x}'" },
+            "#": { "cmd": "f'self.set_mode(idx={x})'", "help": "f'select output {x}'" },
             "s": { "cmd": "self.show('outputs')", "help": "show outputs" }
         }
         self.output_sub_cmds = {
@@ -69,12 +74,11 @@ class SwayOut:
         self.set_mode("main")
         self.update_commands()
 
-    def set_mode(self, mode, idx=None):
-        self.mode["mode"] = mode
-        self.mode["idx"] = None
-
-    def set_mode_idx(self, idx):
-        self.mode["idx"] = str(idx)
+    def set_mode(self, mode=None, idx=None):
+        if mode is not None:
+            self.mode["mode"] = mode
+        if idx is not None:
+            self.mode["idx"] = None
 
     def prompt(self):
         while True:
@@ -92,7 +96,6 @@ class SwayOut:
             elif sel in self.commands["any"].keys():
                 cmds = self.commands["any"]
                 cmd = cmds[sel]["cmd"]
-                # print(f"{cmd = }")
                 exec(cmd)
                 continue
             else:
@@ -118,7 +121,7 @@ class SwayOut:
     def update_commands(self):
         for c in self.output_cmd:
             if c == "#":
-                for x in range(1, len(self.config["outputs"])+1):
+                for x in range(1, len(self.outputs)+1):
                     self.commands["output"].update({
                         str(x): {
                             "cmd": eval(self.output_cmd["#"]["cmd"]),
@@ -146,9 +149,6 @@ class SwayOut:
             else:
                 self.commands["preset"].update({ c: self.preset_cmd[c] })
 
-    def output_enable(self, idx):
-        self.set_output(idx, "enable")
-
     def set_output(self, idx, action, quiet=False):
         output = self.outputs[int(idx)-1]
         if not quiet:
@@ -172,7 +172,7 @@ class SwayOut:
             self.set_output(idx, "enable", quiet=True)
             return
         elif action == "show":
-            self.show("outputs", idx=idx)
+            self.show("outputs", item_idx=idx)
             return
 
         print(f"  - {cmd}")
@@ -221,7 +221,6 @@ class SwayOut:
         list = {}
         idx = 0
         if item == "help":
-            # any, main, ...
             for k in self.commands.keys():
                 print(f"{bcolors.CYAN}mode: {k}{bcolors.GREEN}")
                 c_k = self.commands[k]
@@ -242,7 +241,6 @@ class SwayOut:
 
         elif item == "outputs":
             self.outputs = self.i3.get_outputs()
-            # self.update_output_validator()
             for output in self.outputs:
                 idx += 1
                 if idx == item_idx or item_idx is None:
@@ -258,24 +256,4 @@ class SwayOut:
             for preset_name in [x["name"] for x in self.config["presets"]]:
                 idx += 1
                 print(f"{bcolors.CYAN}  {idx}: {preset_name}{bcolors.ENDC}")
-        # print("")
 
-
-def main():
-    global swayout
-    try:
-        with open(CONFIG_FILE) as f:
-            config = json.load(f)
-    except Exception as ex:
-        print(f"Exception Type:{type(ex).__name__}, args:{ex.args}")
-        print("running with empty config")
-        config = CONFIG_DEFAULT
-
-    swayout = SwayOut(config)
-    swayout.show("outputs")
-    swayout.show("presets")
-    swayout.prompt()
-
-
-if __name__ == "__main__":
-    main()
