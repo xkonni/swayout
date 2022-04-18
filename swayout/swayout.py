@@ -30,25 +30,26 @@ class SwayOut:
         # runtime
         self.outputs = self.i3.get_outputs()
         self.output_cmd = {
-            "cmd": "f'self.set_mode_idx({x})'",
-            "help": "f'select output {x}'",
+            "#": { "cmd": "f'self.set_mode_idx({x})'", "help": "f'select output {x}'" },
+            "s": { "cmd": "self.show('outputs')", "help": "show outputs" }
         }
         self.output_sub_cmds = {
             "c": {"cmd": "f'self.set_output({x},\"configure\")'", "help": "configure output"},
             "e": {"cmd": "f'self.set_output({x},\"enable\")'", "help": "enable output"},
             "d": {"cmd": "f'self.set_output({x},\"disable\")'", "help": "disable output"},
             "r": {"cmd": "f'self.set_output({x},\"reconfigure\")'", "help": "reconfigure output"},
-            "s": {"cmd": "f'self.set_output({x},\"show\")'", "help": "show output"}
         }
         self.preset_cmd = {
-            "cmd": "f'self.set_preset({x})'", "help": "f'switch to preset {x}'"}
+            "#": { "cmd": "f'self.set_preset({x})'", "help": "f'switch to preset {x}'"},
+            "s": { "cmd": "self.show('presets')", "help": "show presets" }
+        }
         self.commands = {
             "any": {
                 "q": {"cmd": "sys.exit()", "help": "quit swayout"},
                 "m": {"cmd": "self.set_mode('main')", "help": "main menu"},
                 "?": {"cmd": "self.show('help')", "help": "show help"},
                 "h": {"cmd": "self.show('help')", "help": "show help"},
-                "d": {"cmd": "print(json.dumps(self.commands, indent=4))", "help": "dump commands"},
+                "u": {"cmd": "print(json.dumps(self.commands, indent=4))", "help": "dump commands"},
             },
             "main": {
                 "o": {"cmd": "self.set_mode('output')", "help": "output configuration"},
@@ -113,25 +114,35 @@ class SwayOut:
             print(f"{bcolors.WARNING}> invalid input {sel}, press h/? for help")
 
     def update_commands(self):
-        self.commands["output"] = {
-            str(x): {
-                "cmd": eval(self.output_cmd["cmd"]),
-                "help": eval(self.output_cmd["help"]),
-                "sub_cmds": {}
-            } for x in range(1, len(self.config["outputs"])+1)
-        }
+        for c in self.output_cmd:
+            if c == "#":
+                for x in range(1, len(self.config["outputs"])+1):
+                    self.commands["output"].update({
+                        str(x): {
+                            "cmd": eval(self.output_cmd["#"]["cmd"]),
+                            "help": eval(self.output_cmd["#"]["help"]),
+                            "sub_cmds": {
+                                k: {
+                                    "cmd": eval(self.output_sub_cmds[k]["cmd"], {'k': f'{k}', 'x': x}),
+                                    "help": self.output_sub_cmds[k]["help"]
+                                    } for k in self.output_sub_cmds
+                                }
+                            }
+                        })
+            else:
+                self.commands["output"].update({ c: self.output_cmd[c] })
 
-        for x in self.commands["output"]:
-            self.commands["output"][x]["sub_cmds"] = {
-                k: {
-                    "cmd": eval(self.output_sub_cmds[k]["cmd"], {'k': f'{k}', 'x': x}),
-                    "help": self.output_sub_cmds[k]["help"]
-                } for k in self.output_sub_cmds
-            }
-
-        self.commands["preset"] = {
-            str(x): {"cmd": eval(self.preset_cmd["cmd"]), "help": eval(self.preset_cmd["help"])} for x in range(1, len(self.config["presets"])+1)
-        }
+        for c in self.preset_cmd:
+            if c == "#":
+                for x in range(1, len(self.config["presets"])+1):
+                    self.commands["preset"].update({
+                        str(x): {
+                            "cmd": eval(self.preset_cmd["#"]["cmd"]),
+                            "help": eval(self.preset_cmd["#"]["help"])
+                            }
+                        })
+            else:
+                self.commands["preset"].update({ c: self.preset_cmd[c] })
 
     def output_enable(self, idx):
         self.set_output(idx, "enable")
@@ -216,29 +227,15 @@ class SwayOut:
                     if k2.isdigit():
                         if k2 == "1":
                             h2 = h2.replace(f" {k2}", "")
-                            print(f"    - #: {h2}")
+                            print(f"  - #: {h2}")
                             if "sub_cmds" in c_k2:
                                 print(f"{bcolors.CYAN}  mode: {k}-#{bcolors.GREEN}")
                                 for k3 in c_k2["sub_cmds"]:
                                     h3 = c_k2["sub_cmds"][k3]["help"]
                                     print(f"    - {k3}: {h3}")
-
                     else:
                         print(f"  - {k2}: {h2}")
 
-                    # if k2.isdigit():
-                    #     if k2 == "1":
-                    #         if c_k2 is None:
-                    #             print(f"  - {k} #")
-                    #             continue
-                    #         else:
-                    #             print(
-                    #                 f"  - {k} # [{'|'.join(k3 for k3 in c_k2.keys())}]")
-                    #             continue
-                    #     else:
-                    #         continue
-                    # else:
-                    #     print(f"  - {k2}: {h2}")
         elif item == "outputs":
             self.outputs = self.i3.get_outputs()
             # self.update_output_validator()
