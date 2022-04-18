@@ -37,7 +37,9 @@ class SwayOut:
             "c": {"cmd": "f'self.set_output({x},\"configure\")'", "help": "configure output"},
             "e": {"cmd": "f'self.set_output({x},\"enable\")'", "help": "enable output"},
             "d": {"cmd": "f'self.set_output({x},\"disable\")'", "help": "disable output"},
+            "o": {"cmd": "f'self.set_mode(\"output\")'", "help": "output configuration"},
             "r": {"cmd": "f'self.set_output({x},\"reconfigure\")'", "help": "reconfigure output"},
+            "s": {"cmd": "f'self.show(\"outputs\", {x})'", "help": "show output"},
         }
         self.preset_cmd = {
             "#": { "cmd": "f'self.set_preset({x})'", "help": "f'switch to preset {x}'"},
@@ -79,7 +81,7 @@ class SwayOut:
             mode = self.mode["mode"]
             idx = self.mode.get("idx")
             m = f"{mode}{':' if idx is not None else ''}{idx if idx is not None else ''}"
-            print(f"{bcolors.BOLD}{bcolors.BLUE}::swayout:: {bcolors.CYAN}{m:>8}{bcolors.ENDC}{bcolors.BOLD} > {bcolors.ENDC}", end="", flush=True)
+            print(f"{bcolors.BOLD}{bcolors.BLUE}::swayout:: {bcolors.GREEN}{m:>8}{bcolors.ENDC}{bcolors.BOLD} > {bcolors.ENDC}", end="", flush=True)
             sel = readchar.readchar().lower()
             print(sel)
             # quit
@@ -150,7 +152,7 @@ class SwayOut:
     def set_output(self, idx, action, quiet=False):
         output = self.outputs[int(idx)-1]
         if not quiet:
-            print(f"{bcolors.HEADER}> output {output.name} {action}{bcolors.GREEN}")
+            print(f"{bcolors.HEADER}> output: {output.name} {action}{bcolors.CYAN}")
 
         if action == "configure":
             cmd = f"output {output.name}"
@@ -170,7 +172,7 @@ class SwayOut:
             self.set_output(idx, "enable", quiet=True)
             return
         elif action == "show":
-            self.show("outputs")
+            self.show("outputs", idx=idx)
             return
 
         print(f"  - {cmd}")
@@ -183,7 +185,7 @@ class SwayOut:
             print(f"preset {idx} not defined")
             return False
 
-        print(f">> preset: {preset['name']}")
+        print(f"{bcolors.HEADER}> preset: {preset['name']}{bcolors.CYAN}")
         i3_outputs = self.i3.get_outputs()
         preset_outputs = preset["outputs"]
 
@@ -212,7 +214,9 @@ class SwayOut:
             print(f"  - {cmd}")
             self.i3.command(cmd)
 
-    def show(self, item):
+        print(f"{bcolors.ENDC}", end="")
+
+    def show(self, item, item_idx=None):
         print(f"{bcolors.BOLD}{bcolors.HEADER}> show {item}{bcolors.ENDC}")
         list = {}
         idx = 0
@@ -241,19 +245,20 @@ class SwayOut:
             # self.update_output_validator()
             for output in self.outputs:
                 idx += 1
-                if output.active:
-                    state = "[active]"
-                    mode = f"{output.current_mode.width}x{output.current_mode.height}"
-                else:
-                    state = "[inactive]"
-                    mode = "-"
-                print(
-                    f"  {idx}: {output.name:5s} {state:10s} {mode:10s} {output.make:20s} {output.model:10s} {output.serial}")
+                if idx == item_idx or item_idx is None:
+                    if output.active:
+                        state = "[active]"
+                        mode = f"{output.current_mode.width}x{output.current_mode.height}"
+                    else:
+                        state = "[inactive]"
+                        mode = "-"
+                    print(
+                        f"{bcolors.CYAN}  {idx}: {output.name:5s} {state:10s} {mode:10s} {output.make:20s} {output.model:10s} {output.serial}{bcolors.ENDC}")
         elif item == "presets":
             for preset_name in [x["name"] for x in self.config["presets"]]:
                 idx += 1
-                print(f"  {idx}: {preset_name}")
-        print("")
+                print(f"{bcolors.CYAN}  {idx}: {preset_name}{bcolors.ENDC}")
+        # print("")
 
 
 def main():
