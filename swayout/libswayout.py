@@ -1,10 +1,8 @@
 from i3ipc import Connection
 import json
-import time
-from xdg import XDG_CONFIG_HOME, XDG_CACHE_HOME
+from xdg import XDG_CONFIG_HOME
 import readchar
 import time
-import sys
 
 
 class Colors:
@@ -36,8 +34,8 @@ class SwayOut:
         # runtime
         self.outputs = self.i3.get_outputs()
         self.output_cmd = {
-            "#": { "cmd": "f'self.set_mode(idx={x})'", "help": "f'select output {x}'" },
-            "s": { "cmd": "self.show('outputs')", "help": "show outputs" }
+            "#": {"cmd": "f'self.set_mode(idx={x})'", "help": "f'select output {x}'"},
+            "s": {"cmd": "self.show('outputs')", "help": "show outputs"}
         }
         self.output_sub_cmds = {
             "c": {"cmd": "f'self.set_output({x},\"configure\")'", "help": "configure output"},
@@ -48,8 +46,8 @@ class SwayOut:
             "s": {"cmd": "f'self.show(\"outputs\", {x})'", "help": "show output"},
         }
         self.preset_cmd = {
-            "#": { "cmd": "f'self.set_preset({x})'", "help": "f'switch to preset {x}'"},
-            "s": { "cmd": "self.show('presets')", "help": "show presets" }
+            "#": {"cmd": "f'self.set_preset({x})'", "help": "f'switch to preset {x}'"},
+            "s": {"cmd": "self.show('presets')", "help": "show presets"}
         }
         self.commands = {
             "any": {
@@ -87,7 +85,9 @@ class SwayOut:
             mode = self.mode["mode"]
             idx = self.mode.get("idx")
             m = f"{mode}{':' if idx is not None else ''}{idx if idx is not None else ''}"
-            print(f"{Colors.BOLD}{Colors.BLUE}::swayout:: {Colors.GREEN}{m:>8}{Colors.ENDC}{Colors.BOLD} > {Colors.ENDC}", end="", flush=True)
+            print(f"{Colors.BOLD}{Colors.BLUE}::swayout::"
+                  f" {Colors.GREEN}{m:>8}{Colors.ENDC}{Colors.BOLD} > {Colors.ENDC}",
+                  end="", flush=True)
             sel = readchar.readchar().lower()
             print(sel)
             # quit
@@ -123,36 +123,37 @@ class SwayOut:
     def update_commands(self):
         for c in self.output_cmd:
             if c == "#":
-                for x in range(1, len(self.outputs)+1):
+                for x in range(1, len(self.outputs) + 1):
                     self.commands["output"].update({
                         str(x): {
                             "cmd": eval(self.output_cmd["#"]["cmd"]),
                             "help": eval(self.output_cmd["#"]["help"]),
                             "sub_cmds": {
                                 k: {
-                                    "cmd": eval(self.output_sub_cmds[k]["cmd"], {'k': f'{k}', 'x': x}),
+                                    "cmd": eval(self.output_sub_cmds[k]["cmd"],
+                                                {'k': f'{k}', 'x': x}),
                                     "help": self.output_sub_cmds[k]["help"]
-                                    } for k in self.output_sub_cmds
-                                }
+                                } for k in self.output_sub_cmds
                             }
-                        })
+                        }
+                    })
             else:
-                self.commands["output"].update({ c: self.output_cmd[c] })
+                self.commands["output"].update({c: self.output_cmd[c]})
 
         for c in self.preset_cmd:
             if c == "#":
-                for x in range(1, len(self.config["presets"])+1):
+                for x in range(1, len(self.config["presets"]) + 1):
                     self.commands["preset"].update({
                         str(x): {
                             "cmd": eval(self.preset_cmd["#"]["cmd"]),
                             "help": eval(self.preset_cmd["#"]["help"])
-                            }
-                        })
+                        }
+                    })
             else:
-                self.commands["preset"].update({ c: self.preset_cmd[c] })
+                self.commands["preset"].update({c: self.preset_cmd[c]})
 
     def set_output(self, idx, action, quiet=False):
-        output = self.outputs[int(idx)-1]
+        output = self.outputs[int(idx) - 1]
         if not quiet:
             print(f"{Colors.MAGENTA}> output: {output.name} {action}{Colors.CYAN}")
 
@@ -182,7 +183,7 @@ class SwayOut:
 
     def set_preset(self, idx):
         outputs = self.config["outputs"]
-        preset = self.config["presets"][int(idx)-1]
+        preset = self.config["presets"][int(idx) - 1]
         if not preset:
             print(f"preset {idx} not defined")
             return False
@@ -195,8 +196,8 @@ class SwayOut:
         for p in filter(lambda x: not x["active"], preset_outputs):
             output = next(
                 filter(lambda x: x["name"] == p["name"], outputs))
-            i3_output = next(filter(lambda x: x.serial ==
-                             output["serial"], i3_outputs))
+            i3_output = next(filter(lambda x: x.serial
+                             == output["serial"], i3_outputs))
             cmd = f"output {i3_output.name} disable"
             print(f"  - {cmd}")
             self.i3.command(cmd)
@@ -205,8 +206,8 @@ class SwayOut:
         for p in filter(lambda x: x["active"], preset_outputs):
             output = next(
                 filter(lambda x: x["name"] == p["name"], outputs))
-            i3_output = next(filter(lambda x: x.serial ==
-                             output["serial"], i3_outputs))
+            i3_output = next(filter(lambda x: x.serial
+                             == output["serial"], i3_outputs))
             cmd = f"output {i3_output.name} enable"
             # work on copy of dict
             options = dict(output["options"])
@@ -220,7 +221,6 @@ class SwayOut:
 
     def show(self, item, item_idx=None):
         print(f"{Colors.BOLD}{Colors.MAGENTA}> show {item}{Colors.ENDC}")
-        list = {}
         idx = 0
         if item == "help":
             for k in self.commands.keys():
@@ -253,9 +253,9 @@ class SwayOut:
                         state = f"{Colors.RED}[inactive]{Colors.CYAN}"
                         mode = "-"
                     print(
-                        f"{Colors.CYAN}  {idx}: {output.name:5s} {state:20} {mode:10s} {output.make:20s} {output.model:10s} {output.serial}{Colors.ENDC}")
+                        f"{Colors.CYAN}  {idx}: {output.name:5s} {state:20} {mode:10s}"
+                        f" {output.make:20s} {output.model:10s} {output.serial}{Colors.ENDC}")
         elif item == "presets":
             for preset_name in [x["name"] for x in self.config["presets"]]:
                 idx += 1
                 print(f"{Colors.CYAN}  {idx}: {preset_name}{Colors.ENDC}")
-
