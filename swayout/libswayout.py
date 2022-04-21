@@ -50,24 +50,17 @@ class SwayOut:
             "s": {"cmd": "self.show('presets')", "help": "show presets"}
         }
         self.commands = {
-            "any": {
+            "main": {
                 "q": {"cmd": "sys.exit()", "help": "quit swayout"},
                 "m": {"cmd": "self.set_mode('main')", "help": "main menu"},
                 "?": {"cmd": "self.show('help')", "help": "show help"},
                 "h": {"cmd": "self.show('help')", "help": "show help"},
-                "u": {"cmd": "print(json.dumps(self.commands, indent=4))", "help": "dump commands"},
-            },
-            "main": {
                 "o": {"cmd": "self.set_mode('output')", "help": "output configuration"},
                 "p": {"cmd": "self.set_mode('preset')", "help": "preset configuration"},
-                "s": {"cmd": "self.set_mode('show')", "help": "show outputs/presets"},
+                "u": {"cmd": "print(json.dumps(self.commands, indent=4))", "help": "dump commands"},
             },
             "output": {},
-            "preset": {},
-            "show": {
-                "o": {"cmd": "self.show('outputs')", "help": "show outputs"},
-                "p": {"cmd": "self.show('presets')", "help": "show presets"},
-            }
+            "preset": {}
         }
         self.mode = {}
         self.set_mode("main")
@@ -94,9 +87,9 @@ class SwayOut:
             if sel in ["q"]:
                 print(f"{Colors.BOLD}{Colors.MAGENTA}> quit")
                 break
-            # any
-            elif sel in self.commands["any"].keys():
-                cmds = self.commands["any"]
+            # main
+            elif sel in self.commands["main"].keys():
+                cmds = self.commands["main"]
                 cmd = cmds[sel]["cmd"]
                 exec(cmd)
                 continue
