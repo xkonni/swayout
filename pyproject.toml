@@ -7,8 +7,8 @@ authors = ["Konstantin Koslowski <konstantin.koslowski@posteo.de>"]
 [tool.poetry.dependencies]
 python = "^3.10"
 i3ipc = "^2.2.1"
-xdg = "^5.1.1"
 readchar = "^3.0.5"
+pyxdg = "^0.27"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.5"

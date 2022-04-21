@@ -1,6 +1,6 @@
 from i3ipc import Connection
 import json
-from xdg import XDG_CONFIG_HOME
+from xdg import BaseDirectory
 import readchar
 import time
 
@@ -19,7 +19,7 @@ class Colors:
 
 
 class SwayOut:
-    CONFIG_FILE = f"{XDG_CONFIG_HOME}/swayout.json"
+    CONFIG_FILE = f"{BaseDirectory.xdg_config_home}/swayout.json"
     CONFIG_DEFAULT = {"outputs": [], "presets": []}
 
     def __init__(self):
