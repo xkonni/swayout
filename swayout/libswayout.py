@@ -1,6 +1,5 @@
 from i3ipc import Connection
 import json
-from xdg import BaseDirectory
 import readchar
 import time
 
@@ -19,17 +18,8 @@ class Colors:
 
 
 class SwayOut:
-    CONFIG_FILE = f"{BaseDirectory.xdg_config_home}/swayout.json"
-    CONFIG_DEFAULT = {"outputs": [], "presets": []}
-
-    def __init__(self):
-        try:
-            with open(SwayOut.CONFIG_FILE) as f:
-                self.config = json.load(f)
-        except Exception as ex:
-            print(f"Exception Type:{type(ex).__name__}, args:{ex.args}")
-            print("running with empty config")
-            self.config = SwayOut.CONFIG_DEFAULT
+    def __init__(self, config):
+        self.config = config
         self.i3 = Connection()
         # runtime
         self.outputs = self.i3.get_outputs()
