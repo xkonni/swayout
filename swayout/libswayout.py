@@ -179,8 +179,12 @@ class SwayOut:
         for p in filter(lambda x: not x["active"], preset_outputs):
             output = next(
                 filter(lambda x: x["name"] == p["name"], outputs))
-            i3_output = next(filter(lambda x: x.serial
-                             == output["serial"], i3_outputs))
+            try:
+                i3_output = next(filter(lambda x: x.serial
+                                 == output["serial"], i3_outputs))
+            except StopIteration:
+                print(f"  - ignoring output {output['name']}, not connected")
+                continue
             cmd = f"output {i3_output.name} disable"
             print(f"  - {cmd}")
             self.i3.command(cmd)
@@ -189,8 +193,12 @@ class SwayOut:
         for p in filter(lambda x: x["active"], preset_outputs):
             output = next(
                 filter(lambda x: x["name"] == p["name"], outputs))
-            i3_output = next(filter(lambda x: x.serial
-                             == output["serial"], i3_outputs))
+            try:
+                i3_output = next(filter(lambda x: x.serial
+                                == output["serial"], i3_outputs))
+            except StopIteration:
+                print(f"  - ignoring output {output['name']}, not connected")
+                continue
             cmd = f"output {i3_output.name} enable"
             # work on copy of dict
             options = dict(output["options"])
