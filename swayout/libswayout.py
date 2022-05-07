@@ -153,8 +153,8 @@ class SwayOut:
             cmd = f"output {output.name} enable"
         elif action == "reconfigure":
             self.set_output(idx, "disable", quiet=True)
-            print("  - sleep 5")
-            time.sleep(5)
+            print("  - sleep 10")
+            time.sleep(10)
             self.set_output(idx, "enable", quiet=True)
             return
         elif action == "show":
@@ -238,13 +238,15 @@ class SwayOut:
                 idx += 1
                 if idx == item_idx or item_idx is None:
                     if output.active:
-                        state = f"{Colors.GREEN}[active]{Colors.CYAN}"
-                        mode = f"{output.current_mode.width}x{output.current_mode.height}"
+                        mode = f"{Colors.GREEN}"
+                        mode += f"{output.current_mode.width}x{output.current_mode.height}"
+                        mode += f" %{output.scale:1.2f}"
+                        mode += f" @{output.current_mode.refresh/1000:3.2f}"
+                        mode += f"{Colors.CYAN}"
                     else:
-                        state = f"{Colors.RED}[inactive]{Colors.CYAN}"
-                        mode = "-"
+                        mode = f"{Colors.RED}inactive{Colors.CYAN}"
                     print(
-                        f"{Colors.CYAN}  {idx}: {output.name:5s} {state:20} {mode:10s}"
+                        f"{Colors.CYAN}  {idx}: {output.name:5s} {mode:32s}"
                         f" {output.make:20s} {output.model:10s} {output.serial}{Colors.ENDC}")
         elif item == "presets":
             for preset_name in [x["name"] for x in self.config["presets"]]:
