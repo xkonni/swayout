@@ -239,15 +239,16 @@ class SwayOut:
                 if idx == item_idx or item_idx is None:
                     if output.active:
                         mode = f"{Colors.GREEN}"
-                        mode += f"{output.current_mode.width}x{output.current_mode.height}"
+                        mode += f"{output.current_mode.width:>4d}x{output.current_mode.height:<4d}"
+                        mode += f" +{output.rect.x:>4d}/{output.rect.y:<4d}"
                         mode += f" %{output.scale:1.2f}"
                         mode += f" @{output.current_mode.refresh/1000:3.2f}"
                         mode += f"{Colors.CYAN}"
                     else:
                         mode = f"{Colors.RED}inactive{Colors.CYAN}"
                     print(
-                        f"{Colors.CYAN}  {idx}: {output.name:5s} {mode:32s}"
-                        f" {output.make:20s} {output.model:10s} {output.serial}{Colors.ENDC}")
+                        f"{Colors.CYAN}  {idx}: {output.name:5s} {mode:43s}"
+                        f" {output.make[:10]:10s} {output.model[:8]:8s} {output.serial}{Colors.ENDC}")
         elif item == "presets":
             for preset_name in [x["name"] for x in self.config["presets"]]:
                 idx += 1
