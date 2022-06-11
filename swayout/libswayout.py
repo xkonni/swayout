@@ -233,7 +233,8 @@ class SwayOut:
                 cmd = f"output {i3_output.name} enable"
                 # work on copy of dict
                 options = dict(output["options"])
-                options.update(p["options"])
+                if "options" in p:
+                    options.update(p["options"])
                 for key in options:
                     cmd = cmd + f" {key} {options[key]}"
                 print(f"  - {cmd}")
