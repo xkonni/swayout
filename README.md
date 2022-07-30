@@ -22,6 +22,7 @@ example
     ],
     "presets": [
         {
+            "main": "intern",
             "name": "intern",
             "outputs": [
                 {
@@ -32,6 +33,7 @@ example
             ]
         },
         {
+            "main": "extern-38",
             "name": "intern & extern-38",
             "outputs": [
                 {
@@ -45,6 +47,7 @@ example
             ]
         },
         {
+            "main": "extern-38",
             "name": "extern-38",
             "outputs": [
                 { "name": "intern", "active": false },

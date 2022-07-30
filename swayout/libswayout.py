@@ -31,6 +31,7 @@ class SwayOut:
             "c": {"cmd": "f'self.set_output({x},\"configure\")'", "help": "configure output"},
             "e": {"cmd": "f'self.set_output({x},\"enable\")'", "help": "enable output"},
             "d": {"cmd": "f'self.set_output({x},\"disable\")'", "help": "disable output"},
+            "a": {"cmd": "f'self.set_main({x})'", "help": "set main output"},
             "o": {"cmd": "f'self.set_mode(\"output\")'", "help": "output configuration"},
             "r": {"cmd": "f'self.set_output({x},\"reconfigure\")'", "help": "reconfigure output"},
             "s": {"cmd": "f'self.show(\"outputs\", {x})'", "help": "show output"},
@@ -68,6 +69,22 @@ class SwayOut:
             self.mode["idx"] = str(idx)
         else:
             self.mode["idx"] = None
+
+    def set_main(self, idx=None, name=None):
+        i3_outputs = self.i3.get_outputs()
+        i3_main_output = None
+        if idx is not None:
+            i3_main_output = i3_outputs[int(idx) - 1]
+        elif name is not None:
+            outputs = self.config["outputs"]
+            main_output = next(filter(lambda x: x["name"] == name, outputs))
+            i3_main_output = next(filter(lambda x: x.serial == main_output["serial"], i3_outputs))
+        try:
+            cmd = f"set $main {i3_main_output.name}"
+            print(f"  - {cmd}")
+            self.i3.command(cmd)
+        except Exception as ex:
+            print(f"Exception: {ex}")
 
     def prompt(self):
         while True:
@@ -150,7 +167,6 @@ class SwayOut:
             else:
                 self.commands["preset"].update({c: self.preset_cmds[c]})
 
-
     def set_output(self, idx, action, quiet=False):
         output = self.outputs[int(idx) - 1]
         if not quiet:
@@ -187,15 +203,15 @@ class SwayOut:
             print(f"{Colors.MAGENTA}> preset: {preset.get('name')} {action}{Colors.CYAN}")
 
         i3_outputs = self.i3.get_outputs()
+        self.set_main(name=preset["main"])
         preset_outputs = preset["outputs"]
-
         # disable active: False
         for p in filter(lambda x: not x["active"], preset_outputs):
             output = next(
                 filter(lambda x: x["name"] == p["name"], outputs))
             try:
                 i3_output = next(filter(lambda x: x.serial
-                                == output["serial"], i3_outputs))
+                                        == output["serial"], i3_outputs))
             except StopIteration:
                 print(f"  - ignoring output {output['name']}, not connected")
                 continue
@@ -209,7 +225,7 @@ class SwayOut:
                     filter(lambda x: x["name"] == p["name"], outputs))
                 try:
                     i3_output = next(filter(lambda x: x.serial
-                                    == output["serial"], i3_outputs))
+                                            == output["serial"], i3_outputs))
                 except StopIteration:
                     print(f"  - ignoring output {output['name']}, not connected")
                     continue
@@ -226,7 +242,7 @@ class SwayOut:
                     filter(lambda x: x["name"] == p["name"], outputs))
                 try:
                     i3_output = next(filter(lambda x: x.serial
-                                    == output["serial"], i3_outputs))
+                                            == output["serial"], i3_outputs))
                 except StopIteration:
                     print(f"  - ignoring output {output['name']}, not connected")
                     continue

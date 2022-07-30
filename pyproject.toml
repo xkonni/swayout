@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "swayout"
-version = "0.1.2"
+version = "0.1.3"
 description = "switch between sway output presets"
 authors = ["Konstantin Koslowski <konstantin.koslowski@posteo.de>"]
 
