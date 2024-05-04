@@ -1,10 +1,10 @@
-import pkg_resources
+from importlib.metadata import version
 from swayout import __version__
 from swayout import libswayout
 
 
 def test_version():
-    assert __version__ == pkg_resources.get_distribution('swayout').version
+    assert __version__ == version('swayout')
 
 
 def test_libswayout_class():

@@ -1,10 +1,10 @@
 import argparse
 import json
-import pkg_resources
+from importlib.metadata import version
 from xdg import BaseDirectory
 import swayout.libswayout as libswayout
 
-__version__ = pkg_resources.get_distribution('swayout').version
+__version__ = version('swayout')
 
 CONFIG_FILE = f"{BaseDirectory.xdg_config_home}/swayout.json"
 CONFIG_DEFAULT = {"outputs": [], "presets": []}
@@ -15,7 +15,7 @@ def setup():
     parser = argparse.ArgumentParser(description="swayout")
     parser.add_argument("-c", "--config", dest="config",
                         type=str, default=CONFIG_FILE, help="config file")
-    parser.add_argument("-v", "--version", action="version", version=__version__)
+    # parser.add_argument("-v", "--version", action="version", version=__version__)
     parser.add_argument("-d", "--debug", dest="debug", action="store_true",
                         help="debug mode")
     ## parse arguments
