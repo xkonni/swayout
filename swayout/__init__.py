@@ -15,7 +15,11 @@ def setup():
     parser = argparse.ArgumentParser(description="swayout")
     parser.add_argument("-c", "--config", dest="config",
                         type=str, default=CONFIG_FILE, help="config file")
-    # parser.add_argument("-v", "--version", action="version", version=__version__)
+    parser.add_argument("-p", "--preset", dest="preset",
+                        type=int, help="activate preset")
+    parser.add_argument("-s", "--show", dest="show", action="store_true",
+                        help="show configured presets")
+    parser.add_argument("-v", "--version", action="version", version=__version__)
     parser.add_argument("-d", "--debug", dest="debug", action="store_true",
                         help="debug mode")
     ## parse arguments
@@ -29,11 +33,17 @@ def setup():
         print("running with empty config")
         config = CONFIG_DEFAULT
 
-    return config
+    return config, args.preset, args.show
 
 def main():
-    config = setup()
+    config, preset, show = setup()
     swayout = libswayout.SwayOut(config)
-    swayout.show("outputs")
-    swayout.show("presets")
-    swayout.prompt()
+    if show:
+        swayout.show("outputs")
+        swayout.show("presets")
+    elif preset is not None:
+        swayout.set_preset(preset, "enable", quiet=False)
+    else:
+        swayout.show("outputs")
+        swayout.show("presets")
+        swayout.prompt()
