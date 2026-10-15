@@ -25,7 +25,7 @@ class SwayOut:
         self.outputs = self.i3.get_outputs()
         self.output_cmds = {
             "#": {"cmd": "f'self.set_mode(\"output\",{x})'", "help": "f'select output {x}'"},
-            "s": {"cmd": "self.show('outputs')", "help": "show outputs"}
+            "s": {"cmd": "self.show('outputs')", "help": "show outputs"},
         }
         self.output_sub_cmds = {
             "c": {"cmd": "f'self.set_output({x},\"configure\")'", "help": "configure output"},
@@ -38,7 +38,7 @@ class SwayOut:
         }
         self.preset_cmds = {
             "#": {"cmd": "f'self.set_mode(\"preset\",{x})'", "help": "f'select preset {x}'"},
-            "s": {"cmd": "self.show('presets')", "help": "show presets"}
+            "s": {"cmd": "self.show('presets')", "help": "show presets"},
         }
         self.preset_sub_cmds = {
             "e": {"cmd": "f'self.set_preset({x},\"enable\")'", "help": "enable preset"},
@@ -56,7 +56,7 @@ class SwayOut:
                 "u": {"cmd": "print(json.dumps(self.commands, indent=4))", "help": "dump commands"},
             },
             "output": {},
-            "preset": {}
+            "preset": {},
         }
         self.mode = {}
         self.set_mode("main")
@@ -77,8 +77,14 @@ class SwayOut:
             i3_main_output = i3_outputs[int(idx) - 1]
         elif name is not None:
             outputs = self.config["outputs"]
-            main_output = next(filter(lambda x: x["name"] == name, outputs))
-            i3_main_output = next(filter(lambda x: x.serial == main_output["serial"], i3_outputs))
+            main_output = next((x for x in outputs if x["name"] == name), None)
+            if main_output is None:
+                print(f"  - ignoring main output {name}, not available")
+                return
+            i3_main_output = next((x for x in i3_outputs if x.serial == main_output["serial"]), None)
+            if i3_main_output is None:
+                print(f"  - ignoring main output {name}, not available")
+                return
         try:
             cmd = f"set $main {i3_main_output.name}"
             print(f"  - {cmd}")
@@ -92,9 +98,11 @@ class SwayOut:
             idx = self.mode.get("idx")
             # print(f"mode: {mode} idx: {idx}")
             m = f"{mode}{':' if idx is not None else ''}{idx if idx is not None else ''}"
-            print(f"{Colors.BOLD}{Colors.BLUE}::swayout::"
-                  f" {Colors.GREEN}{m:>8}{Colors.ENDC}{Colors.BOLD} > {Colors.ENDC}",
-                  end="", flush=True)
+            print(
+                f"{Colors.BOLD}{Colors.BLUE}::swayout::" f" {Colors.GREEN}{m:>8}{Colors.ENDC}{Colors.BOLD} > {Colors.ENDC}",
+                end="",
+                flush=True,
+            )
             sel = readchar.readchar().lower()
             print(sel)
             # quit
@@ -132,38 +140,42 @@ class SwayOut:
         for c in self.output_cmds:
             if c == "#":
                 for x in range(1, len(self.outputs) + 1):
-                    self.commands["output"].update({
-                        str(x): {
-                            "cmd": eval(self.output_cmds["#"]["cmd"]),
-                            "help": eval(self.output_cmds["#"]["help"]),
-                            "sub_cmds": {
-                                k: {
-                                    "cmd": eval(self.output_sub_cmds[k]["cmd"],
-                                                {'k': f'{k}', 'x': x}),
-                                    "help": self.output_sub_cmds[k]["help"]
-                                } for k in self.output_sub_cmds
+                    self.commands["output"].update(
+                        {
+                            str(x): {
+                                "cmd": eval(self.output_cmds["#"]["cmd"]),
+                                "help": eval(self.output_cmds["#"]["help"]),
+                                "sub_cmds": {
+                                    k: {
+                                        "cmd": eval(self.output_sub_cmds[k]["cmd"], {'k': f'{k}', 'x': x}),
+                                        "help": self.output_sub_cmds[k]["help"],
+                                    }
+                                    for k in self.output_sub_cmds
+                                },
                             }
                         }
-                    })
+                    )
             else:
                 self.commands["output"].update({c: self.output_cmds[c]})
 
         for c in self.preset_cmds:
             if c == "#":
                 for x in range(1, len(self.config["presets"]) + 1):
-                    self.commands["preset"].update({
-                        str(x): {
-                            "cmd": eval(self.preset_cmds["#"]["cmd"]),
-                            "help": eval(self.preset_cmds["#"]["help"]),
-                            "sub_cmds": {
-                                k: {
-                                    "cmd": eval(self.preset_sub_cmds[k]["cmd"],
-                                                {'k': f'{k}', 'x': x}),
-                                    "help": self.preset_sub_cmds[k]["help"]
-                                } for k in self.preset_sub_cmds
+                    self.commands["preset"].update(
+                        {
+                            str(x): {
+                                "cmd": eval(self.preset_cmds["#"]["cmd"]),
+                                "help": eval(self.preset_cmds["#"]["help"]),
+                                "sub_cmds": {
+                                    k: {
+                                        "cmd": eval(self.preset_sub_cmds[k]["cmd"], {'k': f'{k}', 'x': x}),
+                                        "help": self.preset_sub_cmds[k]["help"],
+                                    }
+                                    for k in self.preset_sub_cmds
+                                },
                             }
                         }
-                    })
+                    )
             else:
                 self.commands["preset"].update({c: self.preset_cmds[c]})
 
@@ -174,8 +186,7 @@ class SwayOut:
 
         if action == "configure":
             cmd = f"output {output.name}"
-            config_output = next(
-                filter(lambda x: x["serial"] == output.serial, self.config["outputs"]))
+            config_output = next(filter(lambda x: x["serial"] == output.serial, self.config["outputs"]))
             options = config_output.get("options", [])
             for key in options:
                 cmd = cmd + f" {key} {options[key]}"
@@ -205,15 +216,23 @@ class SwayOut:
         i3_outputs = self.i3.get_outputs()
         self.set_main(name=preset["main"])
         preset_outputs = preset["outputs"]
+
+        def get_output(p):
+            output = next((x for x in outputs if x["name"] == p["name"]), None)
+            if output is None:
+                print(f"  - ignoring output {p['name']}, not available")
+                return None, None
+            try:
+                i3_output = next(x for x in i3_outputs if x.serial == output["serial"])
+            except StopIteration:
+                print(f"  - ignoring output {output['name']}, not available")
+                return output, None
+            return output, i3_output
+
         # disable active: False
         for p in filter(lambda x: not x["active"], preset_outputs):
-            output = next(
-                filter(lambda x: x["name"] == p["name"], outputs))
-            try:
-                i3_output = next(filter(lambda x: x.serial
-                                        == output["serial"], i3_outputs))
-            except StopIteration:
-                print(f"  - ignoring output {output['name']}, not connected")
+            output, i3_output = get_output(p)
+            if i3_output is None:
                 continue
             cmd = f"output {i3_output.name} disable"
             print(f"  - {cmd}")
@@ -221,13 +240,8 @@ class SwayOut:
 
         if action == "reconfigure":
             for p in filter(lambda x: x["active"], preset_outputs):
-                output = next(
-                    filter(lambda x: x["name"] == p["name"], outputs))
-                try:
-                    i3_output = next(filter(lambda x: x.serial
-                                            == output["serial"], i3_outputs))
-                except StopIteration:
-                    print(f"  - ignoring output {output['name']}, not connected")
+                output, i3_output = get_output(p)
+                if i3_output is None:
                     continue
                 cmd = f"output {i3_output.name} disable"
                 print(f"  - {cmd}")
@@ -238,13 +252,8 @@ class SwayOut:
         elif action == "enable":
             # enable active: True
             for p in filter(lambda x: x["active"], preset_outputs):
-                output = next(
-                    filter(lambda x: x["name"] == p["name"], outputs))
-                try:
-                    i3_output = next(filter(lambda x: x.serial
-                                            == output["serial"], i3_outputs))
-                except StopIteration:
-                    print(f"  - ignoring output {output['name']}, not connected")
+                output, i3_output = get_output(p)
+                if i3_output is None:
                     continue
                 cmd = f"output {i3_output.name} enable"
                 # work on copy of dict
@@ -296,7 +305,8 @@ class SwayOut:
                         mode = f"{Colors.RED}inactive{Colors.CYAN}"
                     print(
                         f"{Colors.CYAN}  {idx}: {output.name:5s} {mode:42s}"
-                        f" {output.make[:10]:10s} {output.model[:8]:8s} {output.serial}{Colors.ENDC}")
+                        f" {output.make[:10]:10s} {output.model[:8]:8s} {output.serial}{Colors.ENDC}"
+                    )
         elif item == "presets":
             for preset_name in [x["name"] for x in self.config["presets"]]:
                 idx += 1
