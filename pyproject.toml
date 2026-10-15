@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "swayout"
-version = "0.1.4"
+version = "0.1.5"
 description = "switch between sway output presets"
 authors = ["Konstantin Koslowski <konstantin.koslowski@posteo.de>"]
 
@@ -11,8 +11,8 @@ readchar = "^3.0.5"
 pyxdg = "^0.27"
 importlib-resources = "^6.4.0"
 
-[tool.poetry.dev-dependencies]
-pytest = "^6.2.5"
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.4.2"
 coverage = {extras = ["toml"], version = "^6.3.2"}
 pytest-html = "^3.1.1"
 flake8 = "^4.0.1"
